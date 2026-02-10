@@ -313,6 +313,12 @@
           "description": "Trigger a presubmit gangway job (typically use GitHub Prow commands instead)",
           "name": "trigger-presubmit",
           "synopsis": "/trigger-presubmit <job-name> <org> <repo> <base-ref> <base-sha> <pr-number> <pr-sha> [ENV_VAR=value ...]"
+        },
+        {
+          "argument_hint": "[prow-commit-sha]",
+          "description": "Update Prow vendoring across all OpenShift CI repositories",
+          "name": "update-prow",
+          "synopsis": "/ci:update-prow [prow-commit-sha]"
         }
       ],
       "description": "A plugin to work with OpenShift CI",

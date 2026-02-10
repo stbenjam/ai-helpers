@@ -63,6 +63,7 @@ Miscellaneous tools for working with OpenShift CI
 - **`/ci:trigger-periodic` `<job-name> [ENV_VAR=value ...]`** - Trigger a periodic gangway job with optional environment variable overrides
 - **`/ci:trigger-postsubmit` `<job-name> <org> <repo> <base-ref> <base-sha> [ENV_VAR=value ...]`** - Trigger a postsubmit gangway job with repository refs
 - **`/ci:trigger-presubmit` `<job-name> <org> <repo> <base-ref> <base-sha> <pr-number> <pr-sha> [ENV_VAR=value ...]`** - Trigger a presubmit gangway job (typically use GitHub Prow commands instead)
+- **`/ci:update-prow` `[prow-commit-sha]`** - Update Prow vendoring across all OpenShift CI repositories
 
 See [plugins/ci/README.md](plugins/ci/README.md) for detailed documentation.
 
