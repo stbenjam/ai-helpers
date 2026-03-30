@@ -22,6 +22,10 @@ RUN dnf install -y 'dnf-command(config-manager)' \
 # Create claude user with root group for OpenShift compatibility
 RUN useradd -m -u 1000 -g 0 -s /bin/bash claude
 
+# Build landlock-restrict tool
+COPY tools/landlock-restrict /opt/landlock-build
+RUN cd /opt/landlock-build && go build -o /usr/local/bin/landlock-restrict ./ && rm -rf /opt/landlock-build
+
 # Copy ai-helpers repository to /opt/ai-helpers
 COPY . /opt/ai-helpers
 RUN chown -R claude:root /opt/ai-helpers
