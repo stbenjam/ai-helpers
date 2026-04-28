@@ -1,13 +1,13 @@
 ---
 name: "review-panel"
-description: "Multi-specialist panel review. Dispatches 6 parallel sub-agent reviewers (Architecture, Security & Supply Chain, UX/API, Codebase Consistency, QA Engineer, Devil's Advocate) then a CEO arbiter synthesizes one verdict."
+description: "Multi-specialist panel review. Dispatches 6 parallel sub-agent reviewers (Architecture, Security & Supply Chain, UX/API, Codebase Consistency, QA Engineer, Devil's Advocate) then a Panel Arbiter synthesizes one verdict."
 ---
 
-# Review Panel -- Multi-Specialist Review Orchestration
+# Review Panel — Multi-Specialist Review Orchestration
 
 The panel dispatches **6 specialist reviewers in parallel + 1 arbiter
 = 7 persona sections in one verdict**. Each specialist runs as a
-dedicated sub-agent so reviews execute concurrently. The CEO arbiter
+dedicated sub-agent so reviews execute concurrently. The Panel Arbiter
 runs after all specialists complete, synthesizes findings, resolves
 disagreements, and produces the final disposition.
 
@@ -21,7 +21,7 @@ disagreements, and produces the final disposition.
 | Codebase Consistency Reviewer | Duplicate helpers, convention drift, style match with existing code | Always, parallel |
 | QA Engineer | Test coverage gaps, missing edge-case tests, test quality, untested error paths | Always, parallel |
 | Devil's Advocate | Assumes every line is wrong until proven otherwise; tries to break the code | Always, parallel |
-| CEO Arbiter | Strategic synthesis, disagreement resolution, final disposition | Always, after all specialists |
+| Panel Arbiter | Strategic synthesis, disagreement resolution, final disposition | Always, after all specialists |
 
 ## Routing Topology
 
@@ -30,15 +30,15 @@ disagreements, and produces the final disposition.
        \__________|_________|__________|___________|__________/
                                   |
                                   v
-                             ceo-arbiter
+                            panel-arbiter
                         (final call / arbiter)
 ```
 
-- **Specialists raise findings independently** -- no implicit consensus.
+- **Specialists raise findings independently** — no implicit consensus.
   Each runs as a separate sub-agent and cannot see the others' output.
-- **CEO arbitrates** after all specialist sub-agents complete. The CEO
-  receives every specialist's findings and resolves conflicts, weighs
-  trade-offs, and makes the final call.
+- **Panel Arbiter synthesizes** after all specialist sub-agents complete.
+  The arbiter receives every specialist's findings and resolves conflicts,
+  weighs trade-offs, and makes the final call.
 
 ## Specialist Scope
 
@@ -59,9 +59,15 @@ inappropriate intimacy, premature abstraction.
 ### Security & Supply Chain Reviewer
 
 Maps the change against vulnerability classes AND supply chain risk.
-This reviewer operates with a **fails-closed** bias -- when uncertain
+This reviewer operates with a **fails-closed** bias — when uncertain
 whether a pattern is safe, flag it. False positives are preferable to
 missed vulnerabilities.
+
+**Important**: the fails-closed bias applies to **factual uncertainty
+about whether code is safe**, not to value judgments about architectural
+style. If you are unsure whether an input is validated, flag it. If you
+merely prefer a different design, that belongs in the Architecture
+Reviewer's scope.
 
 **Vulnerability surfaces:**
 - **Injection**: SQL, command, template, log, header injection
@@ -78,7 +84,7 @@ missed vulnerabilities.
   changes match what's expected? Any yanked versions?
 - **Lockfile integrity**: Does `go.sum`, `package-lock.json`, `yarn.lock`, `Cargo.lock`,
   etc. contain only expected changes? Unexpected hash changes are a red flag.
-- **Build pipeline changes**: CI config, Makefile, Dockerfile, build scripts -- do they
+- **Build pipeline changes**: CI config, Makefile, Dockerfile, build scripts — do they
   introduce untrusted sources, download URLs, or execution of remote code?
 - **Transitive trust**: Does the change increase the trust boundary? New external API
   calls, new download URLs, new certificate trust, new registry sources?
@@ -99,7 +105,7 @@ Reviews the developer/user-facing surface:
 ### Codebase Consistency Reviewer
 
 Ensures the PR does not introduce drift from existing codebase patterns.
-This reviewer must **actively read existing code** in the repository --
+This reviewer must **actively read existing code** in the repository —
 grep and find to locate potential duplicates and existing conventions
 rather than reviewing the diff in isolation.
 
@@ -145,7 +151,7 @@ proven otherwise**. This reviewer's job is to try to break the code.
 
 - **Logical correctness**: For each conditional, loop, and branch, construct
   an input or state that would cause it to fail. If you cannot construct one,
-  say so explicitly -- silence is not acquittal.
+  say so explicitly — silence is not acquittal.
 - **Hidden assumptions**: What does this code assume that is not enforced?
   Nil-safety, ordering guarantees, single-threaded access, input format,
   environment availability, file existence.
@@ -169,7 +175,7 @@ proven otherwise**. This reviewer's job is to try to break the code.
 The panel optionally includes external review tools that run alongside
 the internal specialists. External reviewers execute as CLI commands
 in parallel with the sub-agents, and their output is included in the
-CEO's arbitration input.
+Panel Arbiter's synthesis input.
 
 ### Supported External Reviewers
 
@@ -183,28 +189,42 @@ CEO's arbitration input.
   invoked via Bash, running in parallel with the sub-agent dispatch.
 - Their stdout is captured as-is and included in the verdict under
   its own heading in the specialist findings section.
-- The CEO treats external reviewer output the same as any specialist's
-  findings: it can reinforce, contradict, or supplement internal
-  specialist findings.
+- The Panel Arbiter treats external reviewer output as **supplementary
+  input, not a peer specialist**. External tools may have different
+  standards, false-positive rates, and scoping than the internal panel.
+  The arbiter should note corroboration with internal findings but should
+  not let an external tool's opinion outweigh the internal panel's
+  consensus without strong justification.
 - If an external reviewer command fails (non-zero exit, tool not found),
   record the error in the verdict under that reviewer's heading and
-  continue -- never block the panel on an external tool failure.
+  continue — never block the panel on an external tool failure.
+- **Timeout**: external reviewer commands should be run with a
+  reasonable timeout (5 minutes). If the command exceeds this, kill it
+  and record a timeout error in the verdict.
 
 ## Execution Procedure
 
-### Step 1 -- Gather Context
+### Step 1 — Gather Context
 
 The invoking command provides the diff, changed file list, base ref,
 and any auto-loaded skill content. This is passed to all sub-agents.
 
-### Step 2 -- Dispatch Parallel Specialist Sub-Agents & External Reviewers
+**Large diffs** (over ~3000 lines): when the diff is very large,
+instruct each sub-agent to focus on the highest-risk files in their
+specialist area rather than attempting exhaustive line-by-line review.
+Architecture and Security reviewers should prioritize new files and
+public API changes; QA and Devil's Advocate should prioritize complex
+logic and error-handling paths; Codebase Consistency should focus on
+new helpers and patterns.
+
+### Step 2 — Dispatch Parallel Specialist Sub-Agents & External Reviewers
 
 If external reviewers were requested, launch their CLI commands via
 Bash **in the same message** as the sub-agent dispatches so everything
 runs concurrently. For example, if CodeRabbit was requested:
 
 ```bash
-coderabbit review --agent --base <base-ref> 2>&1
+timeout 300 coderabbit review --agent --base <base-ref> 2>&1
 ```
 
 Capture the full stdout/stderr as the external reviewer's findings.
@@ -220,7 +240,7 @@ sub-agent receives:
 - Any auto-loaded language/profile skill content
 
 Each sub-agent should be given `subagent_type: "general-purpose"`.
-Do NOT set the `model` parameter -- let sub-agents inherit the parent
+Do NOT set the `model` parameter — let sub-agents inherit the parent
 model. Each sub-agent returns structured findings with file:line
 references where possible.
 
@@ -273,7 +293,7 @@ For the **Devil's Advocate**, add to the prompt:
 
 ```
 You must actively try to break every piece of new code. Do not
-just read it -- construct scenarios. For each function:
+just read it — construct scenarios. For each function:
 
 1. What input causes a panic/crash?
 2. What state makes the conditional wrong?
@@ -285,24 +305,30 @@ it held up. "No issues found" without evidence of effort is
 not acceptable.
 ```
 
-### Step 3 -- Completeness Gate
+### Step 3 — Completeness Gate
 
 After all sub-agents and external reviewers return, verify:
 
 - Findings exist for all 6 internal specialists
-- No sub-agent returned an error or empty result
+- No sub-agent returned an error or an empty result (a result is
+  "empty" if it contains no findings list and no explicit "no issues
+  found" statement with explanation of what was checked)
 - External reviewer output was captured (if requested). If an external
-  reviewer failed, note the error but do not re-run -- proceed with
-  internal findings.
+  reviewer failed or timed out, note the error but do not re-run —
+  proceed with internal findings.
 
-If any internal specialist check fails, re-dispatch that specialist's
-sub-agent and repeat the gate.
+If any internal specialist produced an error or empty result,
+re-dispatch that specialist's sub-agent **once**. If the retry also
+fails, record the failure in the verdict under that specialist's
+heading and proceed with the remaining findings. Do not retry more
+than once per specialist.
 
-### Step 4 -- CEO Arbitration
+### Step 4 — Panel Arbiter Synthesis
 
 With all specialist findings (and any external reviewer output)
-collected, perform CEO arbitration directly (not as a sub-agent --
-this runs in the main agent context to see the full picture):
+collected, perform Panel Arbiter synthesis directly (not as a
+sub-agent — this runs in the main agent context to see the full
+picture):
 
 1. Read all specialist findings and external reviewer output
 2. Identify any conflicts between specialists (e.g., Architecture
@@ -314,25 +340,49 @@ this runs in the main agent context to see the full picture):
    NEEDS_DISCUSSION
 5. Compile required actions (blocking) vs optional follow-ups
 
-The CEO should bias toward:
+**Disposition criteria:**
+
+- **APPROVE**: No BLOCKING findings remain after synthesis, or all
+  BLOCKING findings were resolved/refuted during arbitration.
+- **REQUEST_CHANGES**: One or more BLOCKING findings remain that
+  require code changes before merge.
+- **NEEDS_DISCUSSION**: Findings raise questions that require author
+  input to resolve — the arbiter cannot determine the correct fix
+  without additional context (e.g., the intended behavior is ambiguous,
+  a design trade-off requires product input, or a specialist flagged
+  a pattern that may be intentional).
+
+**Arbiter biases:**
+
 - **Security over ergonomics** when they conflict
 - **Codebase consistency over local elegance** when they conflict
 - **Existing patterns over novel ones** unless the novel approach
   is demonstrably better
 - **The Devil's Advocate's concerns** when they identify concrete
-  failure scenarios -- these are blocking unless definitively refuted
+  failure scenarios — these are blocking unless another specialist
+  provides a specific technical refutation (e.g., "this race cannot
+  occur because the goroutine is only launched from a single-threaded
+  init path, as shown at file:line")
 
-### Step 5 -- Emit Verdict
+**When all specialists report no issues**: this is a valid outcome
+for clean, well-written changes. The arbiter should confirm the
+APPROVE disposition with a brief summary of what was checked. Do not
+manufacture findings to fill space.
 
-Load `assets/verdict-template.md` (relative to this skill's
-directory) and fill it with the collected findings and arbitration.
-Present the filled template to the user as the review output.
+### Step 5 — Emit Verdict
+
+Load `verdict-template.md` (in the same directory as this skill file)
+and fill it with the collected findings and arbitration. Present the
+filled template to the user as the review output.
 
 Rules:
 - Produce exactly ONE verdict, not per-specialist outputs
 - Keep all section headings from the template
 - Include file:line references from specialist findings
-- CEO arbitration must address any inter-specialist conflicts
+- Panel Arbiter synthesis must address any inter-specialist conflicts
+- Omit the "External Reviewers" section entirely when no external
+  reviewers were requested — do not leave an empty section or
+  a stray horizontal rule
 
 ## Quality Gates
 
@@ -344,4 +394,4 @@ A change passes when:
 - [ ] Codebase Consistency Reviewer: no duplicate helpers, conventions match
 - [ ] QA Engineer: adequate test coverage, edge cases addressed
 - [ ] Devil's Advocate: no unrefuted failure scenarios
-- [ ] CEO Arbiter: trade-offs ratified, disposition set
+- [ ] Panel Arbiter: trade-offs ratified, disposition set
