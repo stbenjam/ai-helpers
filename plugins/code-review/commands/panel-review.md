@@ -40,21 +40,50 @@ Parse `$ARGUMENTS`. Arguments are positional and unordered. Classify each:
 - A **PR URL** (contains `github.com` and `/pull/`) -> use `gh pr diff` and `gh pr view` to fetch the diff and metadata.
 - A **PR number** (bare integer) -> use it with the current repo's remote.
 - A **known external reviewer name** (e.g., `coderabbit`) -> add to the external reviewer list.
-- If **no PR identifier** is provided (the default), diff the current branch against its merge base:
 
-  1. Determine the base branch by trying these remotes and branches in order, using the first that resolves:
-     - `upstream/main`
-     - `upstream/master`
-     - `origin/main`
-     - `origin/master`
-  2. Compute the merge base: `git merge-base HEAD <base-ref>`
-  3. Generate the diff: `git diff <merge-base>...HEAD`
-  4. Get changed files: `git diff --name-only <merge-base>...HEAD`
-  5. Use the current branch name and any commit messages since the merge base as context (in lieu of PR title/body): `git log --format='%s%n%b' <merge-base>...HEAD`
+#### Determine base ref
 
-  If no suitable remote branch is found, fall back to `HEAD~1` and warn the user.
+Whether or not a PR identifier was provided, resolve the base ref so the
+diff always matches what the PR actually targets:
 
-  If the diff is empty (no changes), inform the user and exit.
+1. **Check for an open PR on the current branch:**
+   ```bash
+   gh pr view --json baseRefName --jq '.baseRefName' 2>/dev/null
+   ```
+   If this succeeds, the current branch has an open PR. Use the returned
+   base branch name (e.g., `main`). Determine which remote tracks it:
+   check `upstream` first, then `origin`.
+
+2. **If no open PR exists, detect the upstream default branch:**
+   ```bash
+   gh repo view --json parent --jq '.parent.defaultBranchRef.name' 2>/dev/null
+   ```
+   If this returns a value, the repo is a fork -- use the parent's default
+   branch with the `upstream` remote.
+
+3. **If not a fork (no parent), use origin's default branch:**
+   ```bash
+   gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null
+   ```
+   Use this with the `origin` remote.
+
+4. **Fetch the resolved remote/branch before diffing:**
+   ```bash
+   git fetch <remote> <branch>
+   ```
+
+5. **Generate the diff** using three-dot notation against the resolved ref:
+   ```bash
+   git diff <remote>/<branch>...HEAD
+   git diff --name-only <remote>/<branch>...HEAD
+   git log --format='%s%n%b' <remote>/<branch>...HEAD
+   ```
+
+6. If a **PR identifier was provided** in the arguments, also fetch the PR
+   metadata (title, body, author) via `gh pr view` for richer context. The
+   diff still comes from the base ref resolution above.
+
+If the diff is empty (no changes), inform the user and exit.
 
 ### Step 1 -- Auto-detect Language & Load Skills
 
