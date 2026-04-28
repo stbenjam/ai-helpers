@@ -189,12 +189,11 @@ Panel Arbiter's synthesis input.
   invoked via Bash, running in parallel with the sub-agent dispatch.
 - Their stdout is captured as-is and included in the verdict under
   its own heading in the specialist findings section.
-- The Panel Arbiter treats external reviewer output as **supplementary
-  input, not a peer specialist**. External tools may have different
-  standards, false-positive rates, and scoping than the internal panel.
-  The arbiter should note corroboration with internal findings but should
-  not let an external tool's opinion outweigh the internal panel's
-  consensus without strong justification.
+- The Panel Arbiter treats external reviewer output as a **peer
+  specialist**. Its findings carry the same weight as internal
+  specialists — corroboration strengthens confidence, conflicts
+  require the same explicit resolution as any inter-specialist
+  disagreement.
 - If an external reviewer command fails (non-zero exit, tool not found),
   record the error in the verdict under that reviewer's heading and
   continue — never block the panel on an external tool failure.
