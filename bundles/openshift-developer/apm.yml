@@ -1,5 +1,5 @@
 name: openshift-developer
-version: 1.0.0
+version: 1.0.1
 description: Skills and tools useful to any OpenShift Engineer. 
 
 dependencies:
@@ -9,5 +9,6 @@ dependencies:
     - openshift-eng/ai-helpers/golang
   mcp:
     - name: atlassian
+      registry: false
       transport: http
       url: https://mcp.atlassian.com/v1/mcp
