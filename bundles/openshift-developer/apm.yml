@@ -1,12 +1,12 @@
 name: openshift-developer
-version: 1.0.1
+version: 1.0.2
 description: Skills and tools useful to any OpenShift Engineer. 
 
 dependencies:
   apm:
-    - openshift-eng/ai-helpers/jira
-    - openshift-eng/ai-helpers/ci
-    - openshift-eng/ai-helpers/golang
+    - openshift-eng/ai-helpers/plugins/jira
+    - openshift-eng/ai-helpers/plugins/ci
+    - openshift-eng/ai-helpers/plugins/golang
   mcp:
     - name: atlassian
       registry: false
