@@ -1,0 +1,145 @@
+# skillsaw configuration
+# https://github.com/stbenjam/skillsaw
+version: "0.10.0"
+strict: true
+
+rules:
+  # Plugins should not enable non-allowlisted MCP servers
+  mcp-prohibited:
+    enabled: true
+    severity: error
+    allowlist:
+      - gopls
+
+  # Instruction files (AGENTS.md, CLAUDE.md, GEMINI.md) must be valid, non-empty with valid references
+  instruction-file-valid:
+    enabled: true
+  instruction-imports-valid:
+    enabled: true
+
+  # SKILL.md must have valid frontmatter with name and description
+  agentskill-valid:
+    enabled: true
+  agentskill-description:
+    enabled: true
+  # SKILL.md must have valid frontmatter with name and description
+  agentskill-name:
+    enabled: true
+  # SKILL.md must have valid frontmatter with name and description
+  agentskill-rename-refs:
+    enabled: true
+  content-weak-language:
+    enabled: true
+  content-cognitive-chunks:
+    enabled: true
+    severity: warning
+  content-tautological:
+    enabled: true
+
+  # TODO: ai-helpers has many skills way over budget, including one with 20K tokens
+  context-budget:
+    enabled: false
+  # Detect critical instructions in the middle of files where LLM attention is lowest
+  content-critical-position:  # unsure if actually useful here
+    enabled: false
+
+  # Detect potential API keys, tokens, and passwords in instruction files
+  content-embedded-secrets:
+    enabled: true
+    severity: error
+
+  # Detect markdown links where the target file does not exist
+  content-broken-internal-reference:
+    enabled: true
+    severity: error
+
+  # Detect prohibitions without a positive alternative (agent has no path forward)
+  content-negative-only:
+    enabled: false  # TODO: enable
+
+  # Detect bare path-like strings not wrapped in markdown link syntax
+  content-unlinked-internal-reference:
+    enabled: false # TODO: Should be turned on and elevated, but has some false positives
+
+  # Too many false positives in examples
+  content-placeholder-text:
+    enabled: false
+    severity: warning
+
+  # Validate promptfoo eval YAML config structure and file references
+  promptfoo-valid:
+    enabled: true
+    severity: error
+
+  # Note: we have more complex validations in the custom rules for budgets
+  promptfoo-assertions:
+    enabled: false
+  promptfoo-metadata:
+    enabled: false
+
+  # .coderabbit.yaml must be valid YAML
+  coderabbit-yaml-valid:
+    enabled: true
+    severity: error
+
+  # Every plugin must have an OWNERS file
+  plugin-owners-required:
+    enabled: true
+    severity: error
+    legacy-exceptions:
+      - agendas
+      - ai-operator-dashboard-generator
+      - ai-sbom
+      - bigquery
+      - ci
+      - code-review
+      - compliance
+      - console
+      - container-image
+      - doc
+      - etcd
+      - git
+      - golang
+      - gwapi
+      - hcp
+      - hello-world
+      - jira
+      - lvms
+      - marketplace-ops
+      - metrics
+      - must-gather
+      - native-notifications
+      - node
+      - node-tuning
+      - olm
+      - olm-team
+      - openshift
+      - openshift-tls-profile
+      - origin
+      - ote-migration
+      - rds-analyzer
+      - session
+      - snowflake
+      - sosreport
+      - teams
+      - test-coverage
+      - testing
+      - utils
+      - workspaces
+      - yaml
+
+# Load custom rules from these files
+custom-rules:
+  - ".skillsaw/plugindocs_rule.py"
+  - ".skillsaw/promptfoo_budget_rule.py"
+  - ".skillsaw/owners_rule.py"
+
+# Exclude patterns (glob format)
+# Use exclude: [] to disable all excludes including defaults
+exclude:
+    # - "**/template/**"
+    # - "**/templates/**"
+    # - "**/_template/**"
+
+# Additional markdown files to run content rules on (glob format)
+content-paths: []

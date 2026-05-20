@@ -1,0 +1,13 @@
+{
+  "name": "openshift",
+  "owner": {
+    "name": "openshift"
+  },
+  "plugins": [
+    {
+      "name": "openshift",
+      "source": "./",
+      "description": "Miscellaneous commands related to development on OpenShift"
+    }
+  ]
+}
