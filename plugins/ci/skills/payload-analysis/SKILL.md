@@ -438,7 +438,29 @@ After receiving the reviewer's response:
 - If no weaknesses: proceed as-is.
 - In either case, populate the "Adversarial Review" section (Step 7.6) in the HTML report with the reviewer's findings and any actions taken.
 
-### Step 10: Save and Present
+### Step 10: Validate Outputs
+
+Run the validation scripts to verify the generated YAML and JSON conform to their schemas:
+
+```bash
+# Validate YAML
+VALIDATE_YAML="${CLAUDE_PLUGIN_ROOT}/skills/payload-results-yaml/scripts/validate.py"
+if [ ! -f "$VALIDATE_YAML" ]; then
+  VALIDATE_YAML=$(find ~/.claude/plugins -type f -path "*/ci/skills/payload-results-yaml/scripts/validate.py" 2>/dev/null | sort | head -1)
+fi
+python3 "$VALIDATE_YAML" payload-results-{tag}.yaml
+
+# Validate JSON
+VALIDATE_JSON="${CLAUDE_PLUGIN_ROOT}/skills/payload-autodl-json/scripts/validate.py"
+if [ ! -f "$VALIDATE_JSON" ]; then
+  VALIDATE_JSON=$(find ~/.claude/plugins -type f -path "*/ci/skills/payload-autodl-json/scripts/validate.py" 2>/dev/null | sort | head -1)
+fi
+python3 "$VALIDATE_JSON" payload-analysis-{tag}-autodl.json
+```
+
+If validation fails, fix the errors and regenerate the offending file before proceeding.
+
+### Step 11: Save and Present
 
 1. Save all output files to the current working directory:
    - HTML report: `payload-analysis-<sanitized_tag>-summary.html`

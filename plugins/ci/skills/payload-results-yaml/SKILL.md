@@ -188,6 +188,22 @@ For a given candidate's action entry (matched by `pr_url` and `type`), update it
 
 Scan all candidates. If any candidate has an action with `type: "experiment"` and `status: "pending"`, the file has in-progress experiments awaiting Phase 2 collection. Phase 2 processes only pending experiments — candidates with other statuses are left unchanged.
 
+## Validation
+
+After writing or updating the YAML file, run the validation script to verify it conforms to the schema:
+
+```bash
+VALIDATE="${CLAUDE_PLUGIN_ROOT}/skills/payload-results-yaml/scripts/validate.py"
+if [ ! -f "$VALIDATE" ]; then
+  VALIDATE=$(find ~/.claude/plugins -type f -path "*/ci/skills/payload-results-yaml/scripts/validate.py" 2>/dev/null | sort | head -1)
+fi
+python3 "$VALIDATE" payload-results-{tag}.yaml
+```
+
+The script checks: all required fields exist, field types are correct, enum values are valid (failure_type, action type/status, PR state), confidence scores are 0-100, and candidate failing_jobs reference valid top-level job entries.
+
+Requires PyYAML (`pip install pyyaml`). Exits 0 if valid, 1 with errors to stderr if invalid.
+
 ## See Also
 
 - Related Skill: `payload-analysis` — creates the results file

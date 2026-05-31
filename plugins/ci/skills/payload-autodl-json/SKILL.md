@@ -200,6 +200,22 @@ After staging reverts, find rows matching `candidate_pr_url` and set:
 - **PASS** (confirmed cause): `revert_pr_status`: `"open"`
 - **FAIL** (innocent): `revert_pr_url`: `""`, `revert_pr_status`: `""` (draft was closed)
 
+## Validation
+
+After writing or updating the JSON file, run the validation script to verify it conforms to the schema:
+
+```bash
+VALIDATE="${CLAUDE_PLUGIN_ROOT}/skills/payload-autodl-json/scripts/validate.py"
+if [ ! -f "$VALIDATE" ]; then
+  VALIDATE=$(find ~/.claude/plugins -type f -path "*/ci/skills/payload-autodl-json/scripts/validate.py" 2>/dev/null | sort | head -1)
+fi
+python3 "$VALIDATE" payload-analysis-{tag}-autodl.json
+```
+
+The script checks: table_name is correct, schema matches expected fields and types, all row values are strings, int64 fields are valid integer strings, enum values are valid (failure_type, revert_pr_status, is_new_failure, force_accept_recommended), and no unexpected fields are present.
+
+Uses only Python standard library. Exits 0 if valid, 1 with errors to stderr if invalid.
+
 ## See Also
 
 - Related Skill: `payload-analysis` — creates this file in Step 8
