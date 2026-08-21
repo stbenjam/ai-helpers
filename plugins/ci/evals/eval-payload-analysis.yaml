@@ -672,8 +672,7 @@ judges:
       of truth: signals are itemized per candidate (new failure mode, component
       exclusivity, tiered error message match, multi-job correlation, presubmit
       coverage gap), the sum is capped at 100, and candidates scoring >= 85
-      become revert candidates. Do not assume a different weighting than the
-      attached document.
+      become revert candidates.
 
       Review the YAML results file:
 
@@ -695,37 +694,29 @@ judges:
 
       {{ annotations }}
 
-      Two failure directions matter equally:
-      - Missed reverts: every entry in expected_candidates must be identified
-        at or above its min_confidence and linked to its expected_failing_jobs.
-      - False reverts: when expected_candidates is empty, the correct output
-        has NO candidate at or above the revert threshold. Recommending a
-        revert in that situation is the worst outcome, not a near miss.
+      Score the revert decision: which candidate(s) to revert, the confidence
+      assigned to each, and their failing-job linkage.
+
+      expected_confidence is a reference floor. A correctly-identified
+      candidate scored at or above expected_confidence, up to the 100 cap,
+      receives full confidence credit.
+
+      A correct result means the expected candidate is proposed for revert with
+      a score of 85 or above, or no revert is proposed when none is expected.
 
       Evaluate on a 1-5 scale:
 
-      Score 1: Wrong verdict in either direction — a candidate at/above the
-               revert threshold that is not in expected_candidates (including
-               any revert recommendation when expected_candidates is empty),
-               OR all expected candidates missed, OR no scoring applied at all.
-      Score 2: Some expected candidates identified but confidence scores are way
-               off (>20 points from expected), key failing-job linkages are
-               missing, or an unexpected candidate is scored just below
-               threshold on weak evidence.
-      Score 3: Correct revert/no-revert verdict, but scores are off by 10-20
-               points, rubric signals are not itemized per candidate, or
-               dismissals of non-candidates are asserted without cited evidence.
-      Score 4: Correct verdict with scores within 10 points of
-               expected_confidence. Rubric correctly applied with itemized
-               breakdown. Most expected failing jobs correctly linked.
-               Infrastructure failures correctly distinguished from product
-               failures.
-      Score 5: Correct verdict with scores within 5 points of
-               expected_confidence. Rubric meticulously applied — each signal
-               justified with specific evidence per the attached SKILL.md.
-               All expected failing jobs correctly linked. For no-revert cases,
-               each dismissed candidate's exoneration is backed by concrete
-               evidence rather than assertion.
+      Score 5: Correct result — the expected candidate is scored 85 or above
+               and linked to the correct failing jobs, or no revert is proposed
+               when none is expected.
+      Score 4: The correct candidate is identified and scored 70 to 84, or the
+               result is correct with a factual error in the failing-job
+               linkage.
+      Score 3: The correct candidate is identified but scored below 70.
+      Score 2: The result is wrong but is supported by some investigation and
+               evidence.
+      Score 1: The result is wrong and is supported by little investigation or
+               evidence.
 
   - name: point_in_time_integrity
     score_range: [1, 5]
